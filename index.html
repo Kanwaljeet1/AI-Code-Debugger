@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Code Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js" integrity="sha512-1k6yJq8zgPbsp47acmqCMgfHTCqkfNNpJBWlAbIYW/W2PASi6DPd7OJbRRqtD9h5pz50jdK5Zk90un0nLB522w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="app__header">
+      <div>
+        <p class="eyebrow">Interactive prototype</p>
+        <h1>Voice Code Editor</h1>
+        <p class="lede">Edit code, talk to your editor, and listen to replies without leaving the keyboard.</p>
+      </div>
+      <div class="header__actions">
+        <button id="read-selection" class="ghost">Read selection</button>
+        <button id="clear-editor" class="ghost">Clear</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel__header">
+          <div class="chip">Editor</div>
+          <div class="controls">
+            <label for="language">Language</label>
+            <select id="language">
+              <option value="javascript">JavaScript</option>
+              <option value="typescript">TypeScript</option>
+              <option value="python">Python</option>
+              <option value="html">HTML</option>
+              <option value="css">CSS</option>
+              <option value="json">JSON</option>
+              <option value="cpp">C++</option>
+            </select>
+          </div>
+        </div>
+        <div id="editor" aria-label="Code editor"></div>
+        <div class="statusbar" id="statusbar">line 1, col 1 • UTF-8 • tabs: 2</div>
+      </section>
+
+      <section class="panel chat">
+        <div class="panel__header">
+          <div class="chip chip--accent">Voice chat</div>
+          <div class="mic-state" id="mic-state">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="mic-label">Mic idle</span>
+          </div>
+        </div>
+
+        <div id="chat-log" class="chat__log" aria-live="polite"></div>
+
+        <div class="chat__composer">
+          <button id="mic-btn" class="mic-button" title="Hold to record">🎤</button>
+          <input id="chat-input" type="text" placeholder="Ask the editor or dictate code..." autocomplete="off" />
+          <button id="send-btn" class="primary">Send</button>
+        </div>
+        <div class="chat__footer">
+          <label class="toggle">
+            <input id="speak-toggle" type="checkbox" checked />
+            <span>Speak replies</span>
+          </label>
+          <button id="insert-transcript" class="ghost">Insert last transcript</button>
+          <button id="reset-chat" class="ghost">New chat</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
