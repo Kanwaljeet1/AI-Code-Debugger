@@ -18,24 +18,6 @@ The app is local-first, so the analysis still works if the backend is unavailabl
 <img width="1406" height="752" alt="image" src="https://github.com/user-attachments/assets/b8547107-eb63-4aae-9c5d-563e5acfbc74" />
 <img width="1401" height="270" alt="image" src="https://github.com/user-attachments/assets/037f55dd-cba9-4cd3-8368-d23b2d8a14e2" />
 
---------Architecture----------
-
-
-User Prompt
-     ↓
-🧠 Brain (LLM)
-     ↓ decides
- ┌───────────────┬───────────────┐
- ↓               ↓               ↓
-🛠️ Tools       🧠💾 Memory      (Internal reasoning)
- ↓               ↓
-Results        Retrieved context
-     ↓
-🧠 Brain combines everything
-     ↓
-Final Answer / Code Output
-
-
 
 
 -------------------------------
@@ -55,7 +37,27 @@ Final Answer / Code Output
 - Backend: Node.js + Express
 - AI: OpenAI API, optional
 - Memory: local JSON issue library
+--------------------------------
 
+--------Architecture----------
+
+
+User Prompt
+     ↓
+🧠 Brain (LLM)
+     ↓ decides
+ ┌───────────────┬───────────────┐
+ ↓               ↓               ↓
+🛠️ Tools       🧠💾 Memory      (Internal reasoning)
+ ↓               ↓
+Results        Retrieved context
+     ↓
+🧠 Brain combines everything
+     ↓
+Final Answer / Code Output
+
+
+---------------------------------
 ## Project Structure
 
 - `frontend/src/pages/AIDebuggerStandalone.jsx` - main UI
