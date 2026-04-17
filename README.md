@@ -15,8 +15,8 @@ The app is local-first, so the analysis still works if the backend is unavailabl
 ----OutPut----
 
 <img width="1401" height="756" alt="image" src="https://github.com/user-attachments/assets/81cf3fe7-e346-4339-9f72-cbba49e30197" />
-<img width="1118" height="752" alt="image" src="https://github.com/user-attachments/assets/88e6fb1c-f3f5-4376-a842-06c6418c0532" />
-<img width="1147" height="328" alt="image" src="https://github.com/user-attachments/assets/19225e7f-7c53-42b1-84b4-0dfa7307c640" />
+<img width="1406" height="752" alt="image" src="https://github.com/user-attachments/assets/b8547107-eb63-4aae-9c5d-563e5acfbc74" />
+<img width="1401" height="270" alt="image" src="https://github.com/user-attachments/assets/037f55dd-cba9-4cd3-8368-d23b2d8a14e2" />
 
 --------Architecture----------
 
