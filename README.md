@@ -119,4 +119,3 @@ cat build.log | node tools/ai-debug-prompt.mjs
 ## Notes
 
 - The assistant is intentionally demo-friendly and can run without any external AI service.
-- The older CodeMate room scaffold still exists in the repo, but the main experience is the debugging assistant.
