@@ -1,6 +1,7 @@
 import Revision from '../models/Revision.js';
 import Execution from '../models/Execution.js';
 import { trackJoin, trackLeave, raiseHand, lowerHand, getHands, getCount } from './presenceStore.js';
+import { runtimeState } from '../runtimeState.js';
 
 export function registerRoomHandlers(io) {
   io.on('connection', (socket) => {
@@ -36,18 +37,33 @@ export function registerRoomHandlers(io) {
     });
 
     socket.on('execution:started', async ({ roomId, execId, code, language }) => {
-      const record = await Execution.create({ roomId, execId, code, language, status: 'started' });
-      io.to(roomId).emit('execution:started', record);
+      if (!runtimeState.mongoReady) return;
+      try {
+        const record = await Execution.create({ roomId, execId, code, language, status: 'started' });
+        io.to(roomId).emit('execution:started', record);
+      } catch (err) {
+        console.warn('execution:started skipped:', err.message);
+      }
     });
 
     socket.on('execution:done', async ({ roomId, execId, result }) => {
-      await Execution.updateOne({ execId }, { $set: result });
-      io.to(roomId).emit('execution:done', { execId, result });
+      if (!runtimeState.mongoReady) return;
+      try {
+        await Execution.updateOne({ execId }, { $set: result });
+        io.to(roomId).emit('execution:done', { execId, result });
+      } catch (err) {
+        console.warn('execution:done skipped:', err.message);
+      }
     });
 
     socket.on('save:revision', async ({ roomId, code, language, message }) => {
-      const rev = await Revision.create({ roomId, code, language, message });
-      socket.to(roomId).emit('save:revision', rev);
+      if (!runtimeState.mongoReady) return;
+      try {
+        const rev = await Revision.create({ roomId, code, language, message });
+        socket.to(roomId).emit('save:revision', rev);
+      } catch (err) {
+        console.warn('save:revision skipped:', err.message);
+      }
     });
 
     socket.on('disconnect', () => {

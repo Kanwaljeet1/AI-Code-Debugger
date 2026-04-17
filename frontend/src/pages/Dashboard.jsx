@@ -27,7 +27,7 @@ export default function Dashboard() {
   useEffect(() => {
     // In a full app we'd fetch user's recent rooms. Stub empty for now.
     setRecent([]);
-    if (user?.role === 'ta') fetchActive();
+    fetchActive();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -75,41 +75,39 @@ export default function Dashboard() {
       <div className="panel">
         <div className="flex space-between">
           <h3 style={{ margin: 0 }}>Recent rooms</h3>
-          <span className="badge">TA dashboard stub</span>
+          <span className="badge">Employee dashboard</span>
         </div>
         {recent.length === 0 && <p className="muted">No rooms yet. Create one to begin.</p>}
       </div>
 
-      {user?.role === 'ta' && (
-        <div className="panel">
-          <div className="flex space-between">
-            <div>
-              <h3 style={{ margin: 0 }}>Active sessions</h3>
-              <small className="muted">Live rooms with connected participants</small>
-            </div>
-            <button className="button inline" onClick={fetchActive} disabled={loadingActive}>
-              {loadingActive ? 'Refreshing…' : 'Refresh'}
-            </button>
+      <div className="panel">
+        <div className="flex space-between">
+          <div>
+            <h3 style={{ margin: 0 }}>Active sessions</h3>
+            <small className="muted">Live rooms with connected participants</small>
           </div>
-          {activeRooms.length === 0 ? (
-            <p className="muted" style={{ marginTop: 12 }}>No live rooms right now.</p>
-          ) : (
-            <div className="list" style={{ marginTop: 12 }}>
-              {activeRooms.map((r) => (
-                <div className="list-item" key={r.roomId}>
-                  <div>
-                    <strong>{r.title}</strong>
-                    <div className="muted" style={{ fontSize: 12 }}>
-                      {r.language} · {r.activeConnections} live · {r.handsRaised} hands up
-                    </div>
-                  </div>
-                  <button className="button inline" onClick={() => navigate(`/room/${r.roomId}`)}>Join</button>
-                </div>
-              ))}
-            </div>
-          )}
+          <button className="button inline" onClick={fetchActive} disabled={loadingActive}>
+            {loadingActive ? 'Refreshing…' : 'Refresh'}
+          </button>
         </div>
-      )}
+        {activeRooms.length === 0 ? (
+          <p className="muted" style={{ marginTop: 12 }}>No live rooms right now.</p>
+        ) : (
+          <div className="list" style={{ marginTop: 12 }}>
+            {activeRooms.map((r) => (
+              <div className="list-item" key={r.roomId}>
+                <div>
+                  <strong>{r.title}</strong>
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    {r.language} · {r.activeConnections} live · {r.handsRaised} hands up
+                  </div>
+                </div>
+                <button className="button inline" onClick={() => navigate(`/room/${r.roomId}`)}>Join</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

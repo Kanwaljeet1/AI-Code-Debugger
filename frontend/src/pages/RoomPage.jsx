@@ -320,7 +320,7 @@ export default function RoomPage() {
             options={{ fontSize: 14, fontFamily: 'JetBrains Mono', minimap: { enabled: false }, readOnly: !canWrite }}
           />
           <div className="statusbar">
-            {status === 'online' ? 'Connected' : 'Reconnecting...'} | Role: {user?.role} | Peers: {presenceCount || 1}
+            {status === 'online' ? 'Connected' : 'Reconnecting...'} | Peers: {presenceCount || 1}
           </div>
           {runResult && (
             <div className="panel" style={{ background: '#0f1727', marginTop: 12 }}>
@@ -336,7 +336,7 @@ export default function RoomPage() {
             <div className="flex space-between" style={{ marginBottom: 8 }}>
               <div>
                 <h3 style={{ margin: 0 }}>Chat & Voice</h3>
-                <small className="muted">Raise hand to request TA</small>
+                <small className="muted">Raise hand to request help</small>
               </div>
               <span className="badge">{hands.length} in queue</span>
             </div>
@@ -356,7 +356,7 @@ export default function RoomPage() {
               <button className="button inline" onClick={isHandRaised ? () => clearHand(user?.id) : raiseHandRequest} disabled={handBusy}>
                 {isHandRaised ? 'Lower hand' : 'Raise hand'}
               </button>
-              {user?.role === 'ta' && hands.length > 0 && (
+              {hands.length > 0 && (
                 <button className="button inline" onClick={() => clearHand()} disabled={handBusy}>Clear queue</button>
               )}
             </div>
@@ -370,9 +370,7 @@ export default function RoomPage() {
                         <div>{h.userId}</div>
                         <small className="muted">{new Date(h.raisedAt).toLocaleTimeString()}</small>
                       </div>
-                      {user?.role === 'ta' && (
-                        <button className="button inline" onClick={() => clearHand(h.userId)} disabled={handBusy}>Mark helped</button>
-                      )}
+                      <button className="button inline" onClick={() => clearHand(h.userId)} disabled={handBusy}>Mark helped</button>
                     </div>
                   ))}
                 </div>

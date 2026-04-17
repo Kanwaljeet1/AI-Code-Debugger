@@ -11,6 +11,11 @@ function Protected({ children }) {
   return token ? children : <Navigate to="/login" replace />;
 }
 
+function PublicOnly({ children }) {
+  const { token } = useAuth();
+  return token ? <Navigate to="/" replace /> : children;
+}
+
 export default function App() {
   const { user, logout, token } = useAuth();
   return (
@@ -18,10 +23,15 @@ export default function App() {
       <nav className="navbar">
         <div className="brand">AI Debugging Assistant</div>
         <div className="flex" style={{ gap: '12px' }}>
-          <Link to="/" className="button inline">Home</Link>
-          <Link to="/codemate" className="button inline">Collab Rooms</Link>
-          {token && (
+          {!token ? (
             <>
+              <Link to="/login" className="button inline">Login</Link>
+              <Link to="/signup" className="button inline">Sign up</Link>
+            </>
+          ) : (
+            <>
+              <Link to="/" className="button inline">Home</Link>
+              <Link to="/codemate" className="button inline">Collab Rooms</Link>
               <small className="muted">{user?.email}</small>
               <button className="button inline" onClick={logout}>Logout</button>
             </>
@@ -29,13 +39,13 @@ export default function App() {
         </div>
       </nav>
       <Routes>
-        <Route path="/" element={<AIDebuggerStandalone />} />
+        <Route path="/" element={<Protected><AIDebuggerStandalone /></Protected>} />
         <Route path="/debugger" element={<Protected><DebugAssistant /></Protected>} />
         <Route path="/codemate" element={<Protected><Dashboard /></Protected>} />
         <Route path="/room/:roomId" element={<Protected><RoomPage /></Protected>} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<LoginPage defaultMode="register" />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
+        <Route path="/signup" element={<PublicOnly><LoginPage defaultMode="register" /></PublicOnly>} />
+        <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
       </Routes>
     </div>
   );

@@ -1,24 +1,5 @@
 import pastIssues from '../data/pastIssues.js';
 
-let cachedClient = null;
-
-async function getOpenAIClient() {
-  if (cachedClient !== null) return cachedClient;
-  if (!process.env.OPENAI_API_KEY) {
-    cachedClient = null;
-    return null;
-  }
-  try {
-    const { default: OpenAI } = await import('openai');
-    cachedClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    return cachedClient;
-  } catch (err) {
-    console.error('OpenAI SDK not available. Install with `npm install openai`.', err.message);
-    cachedClient = null;
-    return null;
-  }
-}
-
 function normalizeText(text = '') {
   return String(text)
     .toLowerCase()
@@ -171,6 +152,7 @@ await mongoose.connect(process.env.MONGO_URI);`
 ];
 
 export function inferGenericAnalysis(text) {
+  const haystack = normalizeText(text);
   let bestRule = null;
   let bestHits = 0;
 
@@ -201,174 +183,104 @@ export function inferGenericAnalysis(text) {
   };
 }
 
-function buildPrompt({ logs, snippet, similar }) {
-  const similarBlock = similar
-    .map(
-      (i) =>
-        `- ${i.id}: ${i.title}\n  signature: ${i.signature}\n  summary: ${i.summary}\n  recommended_fix: ${i.recommendedFix}`
-    )
-    .join('\n');
-  return [
-    'You are an AI debugging assistant. Given raw logs and an optional code snippet, produce a concise, actionable diagnosis.',
-    'Return JSON with keys: root_cause (1-2 sentences), fix (1-3 bullet sentences), confidence (0-1 float), pr_snippet (short PR-ready summary), code_snippet (optional code block string).',
-    'Keep it specific to the provided evidence; do not hallucinate services or file paths.',
-    'Similar past issues for reference:\n',
-    similarBlock || '- none',
-    '\nLogs:\n',
-    logs || '(no logs provided)',
-    '\nCode:\n',
-    snippet || '(no code provided)'
-  ].join('\n');
+function stripDeprecatedMongooseOptions(snippet) {
+  // Best-effort cleanup; keep it regex-only so we don't need a JS parser.
+  return snippet
+    .replace(/\s*,\s*useNewUrlParser\s*:\s*true\s*,?/g, '')
+    .replace(/\s*,\s*useUnifiedTopology\s*:\s*true\s*,?/g, '')
+    .replace(/\{\s*,/g, '{')
+    .replace(/,\s*\}/g, '}');
 }
 
-export function fallbackResponse(similar = [], text = '') {
-  const top = similar?.[0];
+function applyMongoHeuristicFix(snippet) {
+  let out = snippet;
+  out = out.replace(
+    /const\s+dbURI\s*=\s*(['"`])mongodb[^'"`]*\1\s*;/i,
+    'const dbURI = process.env.MONGO_URI;'
+  );
+  out = out.replace(
+    /mongoose\.connect\(\s*(['"`])mongodb[^'"`]*\1\s*,/i,
+    'mongoose.connect(process.env.MONGO_URI,'
+  );
+  out = out.replace(
+    /mongoose\.connect\(\s*(['"`])mongodb[^'"`]*\1\s*\)/i,
+    'mongoose.connect(process.env.MONGO_URI)'
+  );
+  out = stripDeprecatedMongooseOptions(out);
+  return out;
+}
+
+function looksMongoRelated({ logs, snippet, analysis }) {
+  const blob = `${logs || ''}\n${snippet || ''}\n${analysis?.root_cause || ''}\n${analysis?.fix || ''}`
+    .toLowerCase();
+  return blob.includes('mongo') || blob.includes('mongoose') || blob.includes('mongodb+srv');
+}
+
+export function buildFixedCodePreview({ logs, snippet, analysis }) {
+  const rawSnippet = String(snippet || '');
+  const trimmedSnippet = rawSnippet.trim();
+  const fixText = String(analysis?.fix || '').trim();
+
+  if (trimmedSnippet) {
+    let fixed = rawSnippet;
+    if (looksMongoRelated({ logs, snippet: rawSnippet, analysis })) {
+      fixed = applyMongoHeuristicFix(fixed);
+    }
+    const header = fixText ? `/* Suggested fix:\n${fixText}\n*/\n\n` : '';
+    return `${header}${String(fixed).trim()}\n`;
+  }
+
+  const codeHint = String(analysis?.code_snippet || '').trim();
+  if (codeHint) return `${codeHint}\n`;
+
+  return `// Paste a code snippet to get a fixed-code preview.\n${fixText ? `// Suggested fix: ${fixText}\n` : ''}`;
+}
+
+export function buildLocalAnalysis({ logs, snippet }) {
+  const similar = findSimilarIssues({ logs, snippet });
+  const top = similar[0];
+
   if (top) {
+    const text = `${logs || ''}\n${snippet || ''}`;
+    const matchCount = similar.reduce((count, issue) => {
+      return count + (issue.keywords || []).filter((kw) => normalizeText(text).includes(normalizeText(kw))).length;
+    }, 0);
+    const confidence = Math.min(0.94, 0.42 + matchCount * 0.08);
+
     return {
-      source: 'mock',
+      source: 'local',
       root_cause: top.summary,
       fix: top.recommendedFix,
-      confidence: 0.42,
+      confidence: Number(confidence.toFixed(2)),
       pr_snippet: top.prDraft,
-      code_snippet: top.codePatch || ''
+      code_snippet: top.codePatch || '',
+      fixed_code: buildFixedCodePreview({
+        logs,
+        snippet,
+        analysis: { fix: top.recommendedFix, code_snippet: top.codePatch || '', root_cause: top.summary }
+      }),
+      similar
     };
   }
 
-  const generic = inferGenericAnalysis(text);
-  if (generic) return { ...generic, source: 'mock' };
-
-  return {
-    source: 'mock',
-    root_cause: 'I could not find a strong local match. Provide the exact stack trace or error code for a better diagnosis.',
-    fix: 'Add more diagnostic logs and rerun the analysis.',
-    confidence: 0.35,
-    pr_snippet: 'Add a defensive log around the failing path and rerun the analyzer to narrow the root cause.',
-    code_snippet: ''
-  };
-}
-
-export async function analyzeDebugRequest({ logs, snippet }) {
   const text = `${logs || ''}\n${snippet || ''}`;
-  const similar = findSimilarIssues({ logs, snippet });
-
-  const client = await getOpenAIClient();
-  if (!client) {
-    const generic = inferGenericAnalysis(text);
-    return generic ? generic : { ...fallbackResponse(similar, text), similar };
-  }
-
-  const prompt = buildPrompt({ logs, snippet, similar });
-  try {
-    const completion = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You are a senior debugging assistant. Keep outputs terse and technical.' },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.3
-    });
-    const parsed = JSON.parse(completion.choices?.[0]?.message?.content || '{}');
+  const generic = inferGenericAnalysis(text);
+  if (generic) {
     return {
-      source: 'openai',
-      ...parsed,
-      similar: similar.length > 0 ? similar : []
-    };
-  } catch (err) {
-    console.error('OpenAI call failed', err.message);
-    return { ...fallbackResponse(similar, text), similar, error: err.message };
-  }
-}
-
-function buildAgentPrompt({ userPrompt, logs, snippet, similar }) {
-  const similarBlock = similar
-    .map(
-      (i) =>
-        `- ${i.id}: ${i.title}\n  signature: ${i.signature}\n  summary: ${i.summary}\n  recommended_fix: ${i.recommendedFix}\n  code_patch: ${i.codePatch || '(none)'}`
-    )
-    .join('\n');
-
-  return [
-    'You are an agentic debugging assistant (Cursor-style).',
-    'Given a user goal/prompt, raw logs, and an optional code snippet, produce an actionable fix and a revised code snippet.',
-    '',
-    'Return JSON with keys:',
-    '- assistant_message: short helpful response for the user (2-6 sentences)',
-    '- steps: array of 3-8 short steps you took / would take next',
-    '- root_cause: 1-2 sentences',
-    '- fix: 2-5 bullet sentences (use "-" prefix inside the string, not an array)',
-    '- confidence: number 0..1',
-    '- pr_snippet: short PR-ready summary',
-    '- code_snippet: optional small patch hint',
-    '- fixed_code: if a code snippet is provided, return the full revised snippet; otherwise provide a minimal example fix',
-    '',
-    'Rules:',
-    '- Keep outputs grounded in the provided logs/snippet; do not invent file paths or services.',
-    '- Prefer minimal edits over rewrites.',
-    '- If more info is required, ask 1-2 precise questions in assistant_message and include them in steps.',
-    '',
-    'Similar past issues for reference:',
-    similarBlock || '- none',
-    '',
-    'User prompt:',
-    userPrompt || '(none)',
-    '',
-    'Logs:',
-    logs || '(no logs provided)',
-    '',
-    'Code snippet:',
-    snippet || '(no code provided)'
-  ].join('\n');
-}
-
-export async function analyzeAgentRequest({ prompt, logs, snippet }) {
-  const userPrompt = String(prompt || '').trim();
-  const text = `${userPrompt}\n${logs || ''}\n${snippet || ''}`;
-  const similar = findSimilarIssues({ logs, snippet });
-
-  const client = await getOpenAIClient();
-  if (!client) {
-    const base = inferGenericAnalysis(text) || { ...fallbackResponse(similar, text), similar };
-    return {
-      source: base.source || 'mock',
-      assistant_message:
-        'I can run local recall and pattern matching right now, but the OpenAI key is not configured. If you add `OPENAI_API_KEY` on the backend, I can produce a richer agentic response.',
-      steps: [
-        'Score logs/snippet against known issues',
-        'Generate a minimal fix recommendation',
-        'Return a fixed-code preview (if snippet provided)'
-      ],
-      ...base,
-      similar: similar.length ? similar : base.similar || []
+      ...generic,
+      fixed_code: buildFixedCodePreview({ logs, snippet, analysis: generic })
     };
   }
 
-  const agentPrompt = buildAgentPrompt({ userPrompt, logs, snippet, similar });
-  try {
-    const completion = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You are a senior debugging agent. Be concise and practical.' },
-        { role: 'user', content: agentPrompt }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.2
-    });
-
-    const parsed = JSON.parse(completion.choices?.[0]?.message?.content || '{}');
-    return {
-      source: 'openai-agent',
-      ...parsed,
-      similar: similar.length > 0 ? similar : []
-    };
-  } catch (err) {
-    console.error('OpenAI agent call failed', err.message);
-    const base = { ...fallbackResponse(similar, text), similar, error: err.message };
-    return {
-      source: 'openai-agent-error',
-      assistant_message: 'The agent call failed. I am returning a local fallback diagnosis based on similar issues and patterns.',
-      steps: ['Attempt agent call', 'Fallback to local recall', 'Return best-effort fix'],
-      ...base
-    };
-  }
+  const fallback = {
+    source: 'local',
+    root_cause:
+      'I could not find a strong local match. Add the exact stack trace, error code, or failing line for a better diagnosis.',
+    fix: 'Add more diagnostic logs around the failing path and rerun the analysis.',
+    confidence: 0.35,
+    pr_snippet: 'Add defensive logging around the failing path, then rerun the analyzer to confirm the root cause.',
+    code_snippet: '',
+    similar: []
+  };
+  return { ...fallback, fixed_code: buildFixedCodePreview({ logs, snippet, analysis: fallback }) };
 }

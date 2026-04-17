@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const memberSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    roleInRoom: { type: String, enum: ['student', 'ta'], default: 'student' },
+    roleInRoom: { type: String, enum: ['employee'], default: 'employee' },
     permissions: {
       write: { type: Boolean, default: true },
       run: { type: Boolean, default: true }

@@ -33,7 +33,7 @@ export async function query(text, params) {
     id: 'DX-118',
     title: 'React state update on unmounted component',
     stack: 'react',
-    signature: 'Warning: Can\'t perform a React state update on an unmounted component',
+    signature: "Warning: Can't perform a React state update on an unmounted component",
     keywords: ['state update on unmounted', 'memory leak', 'cleanup', 'useEffect'],
     logHint: 'React state update on unmounted component',
     summary:
@@ -58,7 +58,7 @@ export async function query(text, params) {
     id: 'DX-203',
     title: 'Python worker: event loop blocked by CPU-heavy task',
     stack: 'python',
-    signature: 'asyncio TimeoutError' ,
+    signature: 'asyncio TimeoutError',
     keywords: ['asyncio', 'TimeoutError', 'event loop blocked', 'await'],
     logHint: 'asyncio timeout or slow coroutine',
     summary:

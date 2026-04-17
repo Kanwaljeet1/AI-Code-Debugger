@@ -17,14 +17,12 @@ router.post('/', authRequired, async (req, res) => {
     title: title || 'New Room',
     language: language || 'javascript',
     createdBy: req.user.id,
-    members: [{ userId: req.user.id, roleInRoom: 'ta', permissions: { write: true, run: true } }]
+    members: [{ userId: req.user.id, roleInRoom: 'employee', permissions: { write: true, run: true } }]
   });
   res.json({ roomId: room.roomId, title: room.title, language: room.language });
 });
 
-// TA dashboard: list rooms that currently have live sockets.
 router.get('/active', authRequired, async (req, res) => {
-  if (req.user.role !== 'ta') return res.status(403).json({ message: 'TA only' });
   const snapshot = getPresenceSnapshot();
   const roomIds = Object.keys(snapshot);
   if (roomIds.length === 0) return res.json({ rooms: [] });
@@ -48,7 +46,7 @@ router.get('/:id', authRequired, async (req, res) => {
   if (!isMember) {
     room.members.push({
       userId: req.user.id,
-      roleInRoom: req.user.role || 'student',
+      roleInRoom: 'employee',
       permissions: { write: true, run: true }
     });
     await room.save();
@@ -70,7 +68,7 @@ router.post('/:id/save', authRequired, async (req, res) => {
   if (!room) return res.status(404).json({ message: 'Room not found' });
   const member = room.members?.find((m) => m.userId?.toString() === req.user.id);
   if (!member) return res.status(403).json({ message: 'Not a member of this room' });
-  if (member.permissions?.write === false) return res.status(403).json({ message: 'Write is disabled for your role' });
+  if (member.permissions?.write === false) return res.status(403).json({ message: 'Write is disabled in this room' });
   await Revision.create({ roomId: req.params.id, userId: req.user.id, code, language, message });
   await Room.updateOne({ roomId: req.params.id }, { $set: { language, lastSavedAt: new Date() } });
   res.json({ ok: true });
@@ -127,12 +125,6 @@ router.post('/:id/hand/clear', authRequired, async (req, res) => {
   const member = room.members?.find((m) => m.userId?.toString() === req.user.id);
   if (!member) return res.status(403).json({ message: 'Not a member of this room' });
   const { userId } = req.body || {};
-  if (!userId && req.user.role !== 'ta') {
-    return res.status(403).json({ message: 'Only a TA can clear the queue' });
-  }
-  if (userId && userId !== req.user.id && req.user.role !== 'ta') {
-    return res.status(403).json({ message: 'Only a TA can clear others' });
-  }
   lowerHand(req.params.id, userId);
   const io = req.app.get('io');
   io?.to(req.params.id).emit('hand:update', { roomId: req.params.id, hands: getHands(req.params.id) });
@@ -146,7 +138,7 @@ router.post('/:id/run', authRequired, async (req, res) => {
   if (!room) return res.status(404).json({ message: 'Room not found' });
   const member = room.members?.find((m) => m.userId?.toString() === req.user.id);
   if (!member) return res.status(403).json({ message: 'Not a member of this room' });
-  if (member.permissions?.run === false) return res.status(403).json({ message: 'Runs are disabled for your role' });
+  if (member.permissions?.run === false) return res.status(403).json({ message: 'Runs are disabled in this room' });
   const execId = uuidv4();
   const execRecord = await Execution.create({
     roomId: req.params.id,

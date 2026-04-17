@@ -1,6 +1,6 @@
 // In-memory presence and "raise hand" tracking for live rooms.
 // This keeps active connection counts and raised-hand queues so that
-// routes can surface an active TA dashboard without hitting Socket.IO internals.
+// routes can surface a live room dashboard without hitting Socket.IO internals.
 
 const roomSockets = new Map(); // roomId -> Set(socketId)
 const socketRoom = new Map(); // socketId -> roomId

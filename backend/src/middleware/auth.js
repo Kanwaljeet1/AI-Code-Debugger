@@ -15,6 +15,6 @@ export function authRequired(req, res, next) {
 }
 
 export function issueToken(user) {
-  const payload = { id: user._id, email: user.email, role: user.role };
+  const payload = { id: user._id || user.id, email: user.email, role: 'employee' };
   return jwt.sign(payload, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '1d' });
 }
