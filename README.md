@@ -21,10 +21,6 @@ The app is local-first, so the analysis still works if the backend is unavailabl
 --------Architecture----------
 
 
-
-
-
-
 User Prompt
      ↓
 🧠 Brain (LLM)
@@ -38,9 +34,6 @@ Results        Retrieved context
 🧠 Brain combines everything
      ↓
 Final Answer / Code Output
-
-
-
 
 
 
