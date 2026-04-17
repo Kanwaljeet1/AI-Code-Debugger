@@ -41,20 +41,7 @@ The app is local-first, so the analysis still works if the backend is unavailabl
 
 --------Architecture----------
 
-
-User Prompt
-     ↓
-🧠 Brain (LLM)
-     ↓ decides
- ┌───────────────┬───────────────┐
- ↓               ↓               ↓
-🛠️ Tools       🧠💾 Memory      (Internal reasoning)
- ↓               ↓
-Results        Retrieved context
-     ↓
-🧠 Brain combines everything
-     ↓
-Final Answer / Code Output
+<img width="1024" height="1536" alt="ChatGPT Image Apr 17, 2026 at 12_35_32 PM" src="https://github.com/user-attachments/assets/c2feb7b6-37e1-413e-86f7-4c3c436016dd" />
 
 
 ---------------------------------
