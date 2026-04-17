@@ -12,6 +12,30 @@ What it returns:
 
 The app is local-first, so the analysis still works if the backend is unavailable. If the backend and an OpenAI key are configured, the app can upgrade the result with LLM output.
 
+----OutPut----
+
+<img width="1401" height="756" alt="image" src="https://github.com/user-attachments/assets/81cf3fe7-e346-4339-9f72-cbba49e30197" />
+<img width="1122" height="753" alt="image" src="https://github.com/user-attachments/assets/353fd4ba-e0a9-44b8-837e-a8857ffb6c07" />
+<img width="1147" height="328" alt="image" src="https://github.com/user-attachments/assets/19225e7f-7c53-42b1-84b4-0dfa7307c640" />
+
+--------Architecture----------
+
+User Prompt
+     ↓
+🧠 Brain (LLM)
+     ↓ decides
+ ┌───────────────┬───────────────┐
+ ↓               ↓               ↓
+🛠️ Tools       🧠💾 Memory      (Internal reasoning)
+ ↓               ↓
+Results        Retrieved context
+     ↓
+🧠 Brain combines everything
+     ↓
+Final Answer / Code Output
+
+-------------------------------
+
 ## Features
 
 - Paste logs or upload `.txt` / `.log` files
